@@ -542,15 +542,17 @@ async function submitSig(){
   if(ejsCfg.pubkey&&ejsCfg.service&&ejsCfg.tplSig&&ejsCfg.mgrEmail){
     status.textContent='Sending notification...';
     try{
-      await emailjs.send(ejsCfg.service,ejsCfg.tplSig,{
-        to_email:ejsCfg.mgrEmail,
-        building:record.building||'N/A',
-        topic:record.topic,
-        tenant_name:record.name,
-        tenant_unit:record.unit||'N/A',
-        tenant_email:record.email,
-        date:record.date,
-        message:`New signature received.\n\nBuilding: ${record.building||'N/A'}\nTopic: ${record.topic}\nTenant: ${record.name}${record.unit?' (Unit '+record.unit+')':''}\nEmail: ${record.email}\nSigned: ${record.date}`
+      await emailjs.send(ejsCfg.service, ejsCfg.tplSig,{
+        to_email: ejsCfg.mgrEmail,
+        building: record.building || 'N/A',
+        topic: record.topic,
+        tenant_name: record.name,
+        tenant_unit: record.unit || 'N/A',
+        tenant_email: record.email,
+        date: record.date,
+
+        // ✅ ADD THIS LINE (THE FIX)
+        signature_image: record.img
       });
     }catch(e){console.error('EmailJS',e);}
   }
