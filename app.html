@@ -1,401 +1,851 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Tenant Signatures</title>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#f7f6f3;--surface:#fff;--border:rgba(0,0,0,0.1);--border-strong:rgba(0,0,0,0.2);
-  --text:#1a1a1a;--muted:#666;--hint:#999;
-  --success-bg:#edf7ed;--success-text:#2e7d32;--success-border:rgba(46,125,50,0.2);
-  --danger-bg:#fdecea;--danger-text:#c62828;--danger-border:rgba(198,40,40,0.2);
-  --warn-bg:#fff8e1;--warn-text:#e65100;--warn-border:rgba(230,81,0,0.2);
-  --radius-md:8px;--radius-lg:12px;--font-ui:system-ui,-apple-system,sans-serif
-}
-body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-height:100vh}
-.shell{max-width:680px;margin:0 auto;padding:2rem 1.5rem}
-.page{display:none}.page.active{display:block}
-h1{font-size:22px;font-weight:600;letter-spacing:-0.02em;margin-bottom:4px}
-.tagline{font-size:13px;color:var(--muted);margin-bottom:2rem}
-.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.5rem;overflow-x:auto}
-.tab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:-1px;font-family:var(--font-ui);white-space:nowrap}
-.tab:hover{color:var(--text)}.tab.active{color:var(--text);border-bottom-color:var(--text)}
-.view{display:none}.view.active{display:block}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:14px}
-.sec{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin-bottom:10px}
-.fg{margin-bottom:14px}.fg:last-child{margin-bottom:0}
-label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500}
-input,textarea,select{width:100%;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-md);font-size:14px;background:var(--surface);color:var(--text);font-family:var(--font-ui)}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--text)}
-textarea{resize:vertical;min-height:80px;line-height:1.5}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-md);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-family:var(--font-ui)}
-.btn:hover{background:var(--bg)}.btn.primary{background:var(--text);color:#fff;border-color:var(--text)}.btn.primary:hover{opacity:.85;background:var(--text)}
-.btn.danger{color:var(--danger-text);border-color:var(--danger-border)}.btn.danger:hover{background:var(--danger-bg)}
-.btn.full{width:100%;justify-content:center;padding:10px}
-.btn-row{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;align-items:center}
-.pill-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem;min-height:20px}
-.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;background:var(--bg);border:1px solid var(--border-strong);font-size:12px;color:var(--muted);cursor:pointer}
-.pill:hover{background:#eee}.pill .x{font-size:14px;line-height:1;opacity:.6}
-.rec-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:10px}
-.rec-top{display:flex;justify-content:space-between;align-items:flex-start}
-.rec-name{font-weight:600;font-size:15px}.rec-meta{font-size:12px;color:var(--muted);margin-top:3px}
-.rec-topic{font-size:13px;color:var(--muted);margin-top:6px;font-style:italic}
-.badge{font-size:11px;padding:3px 9px;border-radius:99px;background:var(--success-bg);color:var(--success-text);font-weight:600;border:1px solid var(--success-border);white-space:nowrap}
-.rec-sig{margin-top:10px;border:1px solid var(--border);border-radius:var(--radius-md);background:#fafaf9;width:100%;height:65px;object-fit:contain;display:block}
-.empty{text-align:center;padding:3rem 1rem;color:var(--hint);font-size:14px}
-.loading{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.report-box{background:#fafaf9;border:1px solid var(--border);border-radius:var(--radius-md);padding:1rem;font-size:13px;line-height:1.8;color:var(--text);white-space:pre-wrap;max-height:360px;overflow-y:auto;margin-top:10px}
-.status-txt{font-size:12px;color:var(--muted);padding:6px 0}
-.alert{padding:10px 14px;border-radius:var(--radius-md);font-size:13px;margin-bottom:14px}
-.alert.warn{background:var(--warn-bg);color:var(--warn-text);border:1px solid var(--warn-border)}
-.alert.success{background:var(--success-bg);color:var(--success-text);border:1px solid var(--success-border)}
-.sig-wrap{border:1px solid var(--border-strong);border-radius:var(--radius-md);overflow:hidden;background:#fafaf9;touch-action:none}
-canvas{display:block;width:100%;height:130px;cursor:crosshair}
-.sig-hint{font-size:11px;color:var(--hint);padding:5px 10px;border-top:1px solid var(--border);background:var(--bg)}
-.success-box{background:var(--success-bg);border:1px solid var(--success-border);border-radius:var(--radius-lg);padding:2rem;text-align:center;margin-top:1rem}
-.success-box .icon{font-size:32px;margin-bottom:8px}
-.success-box h3{font-size:17px;font-weight:600;color:var(--success-text);margin-bottom:6px}
-.success-box p{font-size:13px;color:var(--muted);line-height:1.6}
-.err-msg{font-size:13px;color:var(--danger-text);margin-top:6px;display:none}
-/* Login screen */
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
-.login-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:100%;max-width:360px;margin:1rem}
-.login-box h2{font-size:20px;font-weight:600;margin-bottom:4px}
-.login-box p{font-size:13px;color:var(--muted);margin-bottom:1.5rem}
-.login-err{font-size:13px;color:var(--danger-text);margin-top:8px;display:none}
-/* Admin link in tenant page */
-.admin-link{position:fixed;bottom:16px;right:16px;font-size:11px;color:var(--hint);cursor:pointer;padding:4px 8px;border-radius:var(--radius-md);background:var(--surface);border:1px solid var(--border);opacity:0.5}
-.admin-link:hover{opacity:1}
-.topic-box{background:var(--bg);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:1rem;border-left:3px solid var(--text)}
-.topic-name{font-size:15px;font-weight:600;margin-bottom:4px}
-.topic-desc{font-size:13px;color:var(--muted);line-height:1.6}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tenant Signatures</title>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --bg: #f7f6f3;
+      --surface: #fff;
+      --border: rgba(0, 0, 0, 0.1);
+      --border-strong: rgba(0, 0, 0, 0.2);
+      --text: #1a1a1a;
+      --muted: #666;
+      --hint: #999;
+      --success-bg: #edf7ed;
+      --success-text: #2e7d32;
+      --success-border: rgba(46, 125, 50, 0.2);
+      --danger-bg: #fdecea;
+      --danger-text: #c62828;
+      --danger-border: rgba(198, 40, 40, 0.2);
+      --warn-bg: #fff8e1;
+      --warn-text: #e65100;
+      --warn-border: rgba(230, 81, 0, 0.2);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font-ui: system-ui, -apple-system, sans-serif
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      min-height: 100vh
+    }
+
+    .shell {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem
+    }
+
+    .page {
+      display: none
+    }
+
+    .page.active {
+      display: block
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px
+    }
+
+    .tagline {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 2rem
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+      overflow-x: auto
+    }
+
+    .tab {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      margin-bottom: -1px;
+      font-family: var(--font-ui);
+      white-space: nowrap
+    }
+
+    .tab:hover {
+      color: var(--text)
+    }
+
+    .tab.active {
+      color: var(--text);
+      border-bottom-color: var(--text)
+    }
+
+    .view {
+      display: none
+    }
+
+    .view.active {
+      display: block
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      margin-bottom: 14px
+    }
+
+    .sec {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--hint);
+      margin-bottom: 10px
+    }
+
+    .fg {
+      margin-bottom: 14px
+    }
+
+    .fg:last-child {
+      margin-bottom: 0
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      background: var(--surface);
+      color: var(--text);
+      font-family: var(--font-ui)
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--text)
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.5
+    }
+
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      font-family: var(--font-ui)
+    }
+
+    .btn:hover {
+      background: var(--bg)
+    }
+
+    .btn.primary {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text)
+    }
+
+    .btn.primary:hover {
+      opacity: .85;
+      background: var(--text)
+    }
+
+    .btn.danger {
+      color: var(--danger-text);
+      border-color: var(--danger-border)
+    }
+
+    .btn.danger:hover {
+      background: var(--danger-bg)
+    }
+
+    .btn.full {
+      width: 100%;
+      justify-content: center;
+      padding: 10px
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    .pill-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 1rem;
+      min-height: 20px
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      background: var(--bg);
+      border: 1px solid var(--border-strong);
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer
+    }
+
+    .pill:hover {
+      background: #eee
+    }
+
+    .pill .x {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .6
+    }
+
+    .rec-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.25rem;
+      margin-bottom: 10px
+    }
+
+    .rec-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start
+    }
+
+    .rec-name {
+      font-weight: 600;
+      font-size: 15px
+    }
+
+    .rec-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px
+    }
+
+    .rec-topic {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+      font-style: italic
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 99px;
+      background: var(--success-bg);
+      color: var(--success-text);
+      font-weight: 600;
+      border: 1px solid var(--success-border);
+      white-space: nowrap
+    }
+
+    .rec-sig {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: #fafaf9;
+      width: 100%;
+      height: 65px;
+      object-fit: contain;
+      display: block
+    }
+
+    .empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--hint);
+      font-size: 14px
+    }
+
+    .loading {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, .4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .report-box {
+      background: #fafaf9;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text);
+      white-space: pre-wrap;
+      max-height: 360px;
+      overflow-y: auto;
+      margin-top: 10px
+    }
+
+    .status-txt {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 6px 0
+    }
+
+    .alert {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      margin-bottom: 14px
+    }
+
+    .alert.warn {
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      border: 1px solid var(--warn-border)
+    }
+
+    .alert.success {
+      background: var(--success-bg);
+      color: var(--success-text);
+      border: 1px solid var(--success-border)
+    }
+
+    .sig-wrap {
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #fafaf9;
+      touch-action: none
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 130px;
+      cursor: crosshair
+    }
+
+    .sig-hint {
+      font-size: 11px;
+      color: var(--hint);
+      padding: 5px 10px;
+      border-top: 1px solid var(--border);
+      background: var(--bg)
+    }
+
+    .success-box {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      text-align: center;
+      margin-top: 1rem
+    }
+
+    .success-box .icon {
+      font-size: 32px;
+      margin-bottom: 8px
+    }
+
+    .success-box h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--success-text);
+      margin-bottom: 6px
+    }
+
+    .success-box p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6
+    }
+
+    .err-msg {
+      font-size: 13px;
+      color: var(--danger-text);
+      margin-top: 6px;
+      display: none
+    }
+
+    /* Login screen */
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg)
+    }
+
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      width: 100%;
+      max-width: 360px;
+      margin: 1rem
+    }
+
+    .login-box h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px
+    }
+
+    .login-box p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 1.5rem
+    }
+
+    .login-err {
+      font-size: 13px;
+      color: var(--danger-text);
+      margin-top: 8px;
+      display: none
+    }
+
+    /* Admin link in tenant page */
+    .admin-link {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      font-size: 11px;
+      color: var(--hint);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      opacity: 0.5
+    }
+
+    .admin-link:hover {
+      opacity: 1
+    }
+
+    .topic-box {
+      background: var(--bg);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 1rem;
+      border-left: 3px solid var(--text)
+    }
+
+    .topic-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px
+    }
+
+    .topic-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ═══ LOGIN SCREEN ═══ -->
-<div id="login-screen" class="login-wrap" style="display:none">
-  <div class="login-box">
-    <h2>Admin access</h2>
-    <p>Enter your password to manage forms and records.</p>
-    <div class="fg"><label>Password</label>
-      <input type="password" id="login-pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()"/>
-    </div>
-    <button class="btn primary full" style="margin-top:8px" onclick="doLogin()">Sign in</button>
-    <div class="login-err" id="login-err">Incorrect password. Try again.</div>
-    <div style="margin-top:14px;text-align:center">
-      <span style="font-size:12px;color:var(--hint);cursor:pointer" onclick="showPage('tenant')">← Back to tenant form</span>
+  <!-- ═══ LOGIN SCREEN ═══ -->
+  <div id="login-screen" class="login-wrap" style="display:none">
+    <div class="login-box">
+      <h2>Admin access</h2>
+      <p>Enter your password to manage forms and records.</p>
+      <div class="fg"><label>Password</label>
+        <input type="password" id="login-pw" placeholder="Enter password"
+          onkeydown="if(event.key==='Enter')doLogin()" />
+      </div>
+      <button class="btn primary full" style="margin-top:8px" onclick="doLogin()">Sign in</button>
+      <div class="login-err" id="login-err">Incorrect password. Try again.</div>
+      <div style="margin-top:14px;text-align:center">
+        <span style="font-size:12px;color:var(--hint);cursor:pointer" onclick="showPage('tenant')">← Back to tenant
+          form</span>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ═══ TENANT PAGE ═══ -->
-<div id="tenant-page" class="page">
-  <div class="shell">
-    <div id="t-form-wrap">
-      <h1 id="t-building">Sign document</h1>
-      <p class="tagline" id="t-tagline">Please read and sign below.</p>
-      <div class="card">
-        <div class="topic-box">
-          <div class="topic-name" id="t-topic">Loading...</div>
-          <div class="topic-desc" id="t-desc"></div>
-        </div>
-        <div class="row2">
-          <div class="fg"><label>Full name *</label><input id="t-name" placeholder="Your full name"/></div>
-          <div class="fg"><label>Unit / apartment</label><input id="t-unit" placeholder="e.g. Apt 4B"/></div>
-        </div>
-        <div class="fg"><label>Email address *</label><input type="email" id="t-email" placeholder="your@email.com"/></div>
-        <div class="fg">
-          <label>Signature * <span style="font-size:11px;color:var(--hint)">(draw with mouse or finger)</span></label>
-          <div class="sig-wrap">
-            <canvas id="sig-canvas" width="640" height="130"></canvas>
-            <div class="sig-hint">Draw your signature above</div>
+  <!-- ═══ TENANT PAGE ═══ -->
+  <div id="tenant-page" class="page">
+    <div class="shell">
+      <div id="t-form-wrap">
+        <h1 id="t-building">Sign document</h1>
+        <p class="tagline" id="t-tagline">Please read and sign below.</p>
+        <div class="card">
+          <div class="topic-box">
+            <div class="topic-name" id="t-topic">Loading...</div>
+            <div class="topic-desc" id="t-desc"></div>
+          </div>
+          <div class="row2">
+            <div class="fg"><label>Full name *</label><input id="t-name" placeholder="Your full name" /></div>
+            <div class="fg"><label>Unit / apartment</label><input id="t-unit" placeholder="e.g. Apt 4B" /></div>
+          </div>
+          <div class="fg"><label>Email address *</label><input type="email" id="t-email" placeholder="your@email.com" />
+          </div>
+          <div class="fg">
+            <label>Signature * <span style="font-size:11px;color:var(--hint)">(draw with mouse or finger)</span></label>
+            <div class="sig-wrap">
+              <canvas id="sig-canvas" width="640" height="130"></canvas>
+              <div class="sig-hint">Draw your signature above</div>
+            </div>
+          </div>
+          <div class="err-msg" id="t-err"></div>
+          <div class="btn-row">
+            <button class="btn danger" onclick="clearSig()">Clear</button>
+            <button class="btn primary" id="t-sub-btn" onclick="submitSig()">Submit signature</button>
+            <span class="status-txt" id="t-status"></span>
           </div>
         </div>
-        <div class="err-msg" id="t-err"></div>
-        <div class="btn-row">
-          <button class="btn danger" onclick="clearSig()">Clear</button>
-          <button class="btn primary" id="t-sub-btn" onclick="submitSig()">Submit signature</button>
-          <span class="status-txt" id="t-status"></span>
+      </div>
+      <div id="t-success" style="display:none">
+        <div class="success-box">
+          <div class="icon">✓</div>
+          <h3>Signature received</h3>
+          <p id="t-success-msg">Your signature has been recorded successfully.</p>
+          <button class="btn" style="margin-top:1rem" onclick="resetTenantForm()">Sign another document</button>
         </div>
       </div>
     </div>
-    <div id="t-success" style="display:none">
-      <div class="success-box">
-        <div class="icon">✓</div>
-        <h3>Signature received</h3>
-        <p id="t-success-msg">Your signature has been recorded successfully.</p>
-        <button class="btn" style="margin-top:1rem" onclick="resetTenantForm()">Sign another document</button>
+    <div class="admin-link" onclick="showLogin()">Admin</div>
+  </div>
+
+  <!-- ═══ ADMIN PAGE ═══ -->
+  <div id="admin-page" class="page">
+    <div class="shell">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.25rem">
+        <h1>Admin panel</h1>
+        <button class="btn danger" style="font-size:12px;padding:5px 12px" onclick="logout()">Sign out</button>
+      </div>
+      <p class="tagline">Manage forms, view records, send reports</p>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('setup')">Setup</button>
+        <button class="tab" onclick="switchTab('form')">Form builder</button>
+        <button class="tab" onclick="switchTab('records')">Records</button>
+        <button class="tab" onclick="switchTab('report')">Report</button>
+      </div>
+
+      <!-- SETUP -->
+      <div class="view active" id="view-setup">
+        <div id="setup-alert"></div>
+        <div class="card">
+          <div class="sec">Admin password</div>
+          <div class="row2">
+            <div class="fg"><label>New password</label><input type="password" id="new-pw"
+                placeholder="Set a password" /></div>
+            <div class="fg"><label>Confirm password</label><input type="password" id="confirm-pw"
+                placeholder="Repeat password" /></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" onclick="savePassword()">Save password</button>
+            <span class="status-txt" id="pw-status"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sec">EmailJS configuration</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Credentials are pre-filled. Just enter your
+            manager email below.</p>
+          <div class="fg"><label>Manager email (receives all notifications)</label><input type="email" id="mgr-email"
+              placeholder="manager@building.com" /></div>
+          <div class="row2">
+            <div class="fg"><label>Public Key</label><input id="ejs-pubkey" /></div>
+            <div class="fg"><label>Service ID</label><input id="ejs-service" /></div>
+          </div>
+          <div class="row2">
+            <div class="fg"><label>Template — per signature</label><input id="ejs-tpl-sig" /></div>
+            <div class="fg"><label>Template — combined report</label><input id="ejs-tpl-rpt" /></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" onclick="saveSetup()">Save</button>
+            <span class="status-txt" id="setup-status"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sec">Share tenant form</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Share this link with tenants in WhatsApp.
+            They'll only see the signing form.</p>
+          <div
+            style="background:var(--bg);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;font-family:monospace;word-break:break-all"
+            id="share-link"></div>
+          <div class="btn-row">
+            <button class="btn" onclick="copyShareLink()">Copy link</button>
+            <span class="status-txt" id="link-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORM BUILDER -->
+      <div class="view" id="view-form">
+        <div class="card">
+          <div class="sec">Active form</div>
+          <div class="fg"><label>Building name</label><input id="admin-building"
+              placeholder="e.g. Sunset Tower, Block A" /></div>
+          <div class="fg"><label>Topic / subject</label><input id="admin-topic"
+              placeholder="e.g. Roof maintenance notice" /></div>
+          <div class="fg"><label>Description shown to tenant</label><textarea id="admin-desc"
+              placeholder="Describe what the tenant is acknowledging..."></textarea></div>
+          <div class="btn-row">
+            <button class="btn" onclick="saveTopicQuick()">+ Save topic</button>
+            <button class="btn primary" onclick="activateForm()">Set as active form ✓</button>
+            <span class="status-txt" id="form-status"></span>
+          </div>
+        </div>
+        <div class="sec">Saved topics (click to load)</div>
+        <div class="pill-wrap" id="topic-pills"></div>
+      </div>
+
+      <!-- RECORDS -->
+      <div class="view" id="view-records">
+        <div class="btn-row" style="margin-bottom:1rem">
+          <button class="btn danger" onclick="clearAll()">Clear all records</button>
+          <span class="status-txt" id="rec-count"></span>
+        </div>
+        <div id="records-list"></div>
+      </div>
+
+      <!-- REPORT -->
+      <div class="view" id="view-report">
+        <div class="card">
+          <div class="sec">Combined signature report</div>
+          <div class="fg"><label>Filter by topic</label>
+            <select id="report-filter">
+              <option value="">All topics</option>
+            </select>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" onclick="generateReport()">Generate report</button>
+            <button class="btn" id="btn-copy-rpt" style="display:none" onclick="copyReport()">Copy text</button>
+            <button class="btn" id="btn-email-rpt" style="display:none" onclick="emailReport()">Email to
+              manager</button>
+            <span class="status-txt" id="report-status"></span>
+          </div>
+          <div id="report-preview"></div>
+        </div>
       </div>
     </div>
   </div>
-  <div class="admin-link" onclick="showLogin()">Admin</div>
-</div>
 
-<!-- ═══ ADMIN PAGE ═══ -->
-<div id="admin-page" class="page">
-  <div class="shell">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.25rem">
-      <h1>Admin panel</h1>
-      <button class="btn danger" style="font-size:12px;padding:5px 12px" onclick="logout()">Sign out</button>
-    </div>
-    <p class="tagline">Manage forms, view records, send reports</p>
+  <script>
+    // ── Storage ───────────────────────────────────────────────────────────────────
+    const KEYS = { sigs: 'sigs_v1', topics: 'topics_v1', form: 'form_v1', ejs: 'ejs_v1', pw: 'admin_pw_v1' };
+    function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)) } catch { return null } }
+    function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch { } }
 
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('setup')">Setup</button>
-      <button class="tab" onclick="switchTab('form')">Form builder</button>
-      <button class="tab" onclick="switchTab('records')">Records</button>
-      <button class="tab" onclick="switchTab('report')">Report</button>
-    </div>
+    // ── State ─────────────────────────────────────────────────────────────────────
+    const DEFAULTS_EJS = { pubkey: 'aFi4iL7O6XD5hY81J', service: 'service_09rz03m', tplSig: 'template_w91c0vl', tplRpt: 'template_g9ee1jj', mgrEmail: '' };
+    let signatures = lsGet(KEYS.sigs) || [];
+    let topics = lsGet(KEYS.topics) || ['House rules acknowledgment', 'Roof maintenance notice', 'Fire safety briefing'];
+    let ejsCfg = lsGet(KEYS.ejs) || {};
+    if (!ejsCfg.pubkey) ejsCfg = { ...DEFAULTS_EJS, ...ejsCfg };
+    let activeForm = lsGet(KEYS.form) || { topic: '', desc: '', building: '' };
+    let adminPw = lsGet(KEYS.pw) || 'admin123';
+    let sessionAuthed = false;
 
-    <!-- SETUP -->
-    <div class="view active" id="view-setup">
-      <div id="setup-alert"></div>
-      <div class="card">
-        <div class="sec">Admin password</div>
-        <div class="row2">
-          <div class="fg"><label>New password</label><input type="password" id="new-pw" placeholder="Set a password"/></div>
-          <div class="fg"><label>Confirm password</label><input type="password" id="confirm-pw" placeholder="Repeat password"/></div>
-        </div>
-        <div class="btn-row">
-          <button class="btn primary" onclick="savePassword()">Save password</button>
-          <span class="status-txt" id="pw-status"></span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="sec">EmailJS configuration</div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Credentials are pre-filled. Just enter your manager email below.</p>
-        <div class="fg"><label>Manager email (receives all notifications)</label><input type="email" id="mgr-email" placeholder="manager@building.com"/></div>
-        <div class="row2">
-          <div class="fg"><label>Public Key</label><input id="ejs-pubkey"/></div>
-          <div class="fg"><label>Service ID</label><input id="ejs-service"/></div>
-        </div>
-        <div class="row2">
-          <div class="fg"><label>Template — per signature</label><input id="ejs-tpl-sig"/></div>
-          <div class="fg"><label>Template — combined report</label><input id="ejs-tpl-rpt"/></div>
-        </div>
-        <div class="btn-row">
-          <button class="btn primary" onclick="saveSetup()">Save</button>
-          <span class="status-txt" id="setup-status"></span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="sec">Share tenant form</div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Share this link with tenants in WhatsApp. They'll only see the signing form.</p>
-        <div style="background:var(--bg);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;font-family:monospace;word-break:break-all" id="share-link"></div>
-        <div class="btn-row">
-          <button class="btn" onclick="copyShareLink()">Copy link</button>
-          <span class="status-txt" id="link-status"></span>
-        </div>
-      </div>
-    </div>
+    if (ejsCfg.pubkey) emailjs.init(ejsCfg.pubkey);
 
-    <!-- FORM BUILDER -->
-    <div class="view" id="view-form">
-      <div class="card">
-        <div class="sec">Active form</div>
-        <div class="fg"><label>Building name</label><input id="admin-building" placeholder="e.g. Sunset Tower, Block A"/></div>
-        <div class="fg"><label>Topic / subject</label><input id="admin-topic" placeholder="e.g. Roof maintenance notice"/></div>
-        <div class="fg"><label>Description shown to tenant</label><textarea id="admin-desc" placeholder="Describe what the tenant is acknowledging..."></textarea></div>
-        <div class="btn-row">
-          <button class="btn" onclick="saveTopicQuick()">+ Save topic</button>
-          <button class="btn primary" onclick="activateForm()">Set as active form ✓</button>
-          <span class="status-txt" id="form-status"></span>
-        </div>
-      </div>
-      <div class="sec">Saved topics (click to load)</div>
-      <div class="pill-wrap" id="topic-pills"></div>
-    </div>
+    // ── Routing ───────────────────────────────────────────────────────────────────
+    function showPage(p) {
+      document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+      document.getElementById('login-screen').style.display = 'none';
+      if (p === 'admin') {
+        document.getElementById('admin-page').classList.add('active');
+        loadAdminFields();
+        renderTopics();
+      } else {
+        document.getElementById('tenant-page').classList.add('active');
+        loadTenantForm();
+      }
+    }
 
-    <!-- RECORDS -->
-    <div class="view" id="view-records">
-      <div class="btn-row" style="margin-bottom:1rem">
-        <button class="btn danger" onclick="clearAll()">Clear all records</button>
-        <span class="status-txt" id="rec-count"></span>
-      </div>
-      <div id="records-list"></div>
-    </div>
+    function showLogin() {
+      document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('login-pw').value = '';
+      document.getElementById('login-err').style.display = 'none';
+      setTimeout(() => document.getElementById('login-pw').focus(), 100);
+    }
 
-    <!-- REPORT -->
-    <div class="view" id="view-report">
-      <div class="card">
-        <div class="sec">Combined signature report</div>
-        <div class="fg"><label>Filter by topic</label>
-          <select id="report-filter"><option value="">All topics</option></select>
-        </div>
-        <div class="btn-row">
-          <button class="btn primary" onclick="generateReport()">Generate report</button>
-          <button class="btn" id="btn-copy-rpt" style="display:none" onclick="copyReport()">Copy text</button>
-          <button class="btn" id="btn-email-rpt" style="display:none" onclick="emailReport()">Email to manager</button>
-          <span class="status-txt" id="report-status"></span>
-        </div>
-        <div id="report-preview"></div>
-      </div>
-    </div>
-  </div>
-</div>
+    function doLogin() {
+      const pw = document.getElementById('login-pw').value;
+      if (pw === adminPw) {
+        sessionAuthed = true;
+        document.getElementById('login-screen').style.display = 'none';
+        showPage('admin');
+      } else {
+        document.getElementById('login-err').style.display = 'block';
+      }
+    }
 
-<script>
-// ── Storage ───────────────────────────────────────────────────────────────────
-const KEYS={sigs:'sigs_v1',topics:'topics_v1',form:'form_v1',ejs:'ejs_v1',pw:'admin_pw_v1'};
-function lsGet(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}}
-function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+    function logout() {
+      sessionAuthed = false;
+      showPage('tenant');
+    }
 
-// ── State ─────────────────────────────────────────────────────────────────────
-const DEFAULTS_EJS={pubkey:'aFi4iL7O6XD5hY81J',service:'service_09rz03m',tplSig:'template_w91c0vl',tplRpt:'template_g9ee1jj',mgrEmail:''};
-let signatures=lsGet(KEYS.sigs)||[];
-let topics=lsGet(KEYS.topics)||['House rules acknowledgment','Roof maintenance notice','Fire safety briefing'];
-let ejsCfg=lsGet(KEYS.ejs)||{};
-if(!ejsCfg.pubkey) ejsCfg={...DEFAULTS_EJS,...ejsCfg};
-let activeForm=lsGet(KEYS.form)||{topic:'',desc:'',building:''};
-let adminPw=lsGet(KEYS.pw)||'admin123';
-let sessionAuthed=false;
+    // Start on tenant page
+    showPage('tenant');
 
-if(ejsCfg.pubkey) emailjs.init(ejsCfg.pubkey);
+    // ── Password ──────────────────────────────────────────────────────────────────
+    function savePassword() {
+      const p1 = document.getElementById('new-pw').value;
+      const p2 = document.getElementById('confirm-pw').value;
+      const s = document.getElementById('pw-status');
+      if (!p1) { s.textContent = 'Enter a password.'; return; }
+      if (p1 !== p2) { s.textContent = 'Passwords do not match.'; return; }
+      adminPw = p1; lsSet(KEYS.pw, adminPw);
+      s.textContent = '✓ Password saved';
+      document.getElementById('new-pw').value = '';
+      document.getElementById('confirm-pw').value = '';
+      setTimeout(() => s.textContent = '', 3000);
+    }
 
-// ── Routing ───────────────────────────────────────────────────────────────────
-function showPage(p){
-  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-  document.getElementById('login-screen').style.display='none';
-  if(p==='admin'){
-    document.getElementById('admin-page').classList.add('active');
-    loadAdminFields();
-    renderTopics();
-  } else {
-    document.getElementById('tenant-page').classList.add('active');
-    loadTenantForm();
-  }
-}
+    // ── Admin tabs ────────────────────────────────────────────────────────────────
+    function switchTab(t) {
+      document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', ['setup', 'form', 'records', 'report'][i] === t));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + t).classList.add('active');
+      if (t === 'records') renderRecords();
+      if (t === 'report') initReport();
+    }
 
-function showLogin(){
-  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('login-pw').value='';
-  document.getElementById('login-err').style.display='none';
-  setTimeout(()=>document.getElementById('login-pw').focus(),100);
-}
+    // ── Setup ─────────────────────────────────────────────────────────────────────
+    function loadAdminFields() {
+      document.getElementById('ejs-pubkey').value = ejsCfg.pubkey || '';
+      document.getElementById('ejs-service').value = ejsCfg.service || '';
+      document.getElementById('ejs-tpl-sig').value = ejsCfg.tplSig || '';
+      document.getElementById('ejs-tpl-rpt').value = ejsCfg.tplRpt || '';
+      document.getElementById('mgr-email').value = ejsCfg.mgrEmail || '';
+      document.getElementById('share-link').textContent = location.href;
+      if (activeForm.building) document.getElementById('admin-building').value = activeForm.building;
+      if (activeForm.topic) document.getElementById('admin-topic').value = activeForm.topic;
+      if (activeForm.desc) document.getElementById('admin-desc').value = activeForm.desc;
+    }
 
-function doLogin(){
-  const pw=document.getElementById('login-pw').value;
-  if(pw===adminPw){
-    sessionAuthed=true;
-    document.getElementById('login-screen').style.display='none';
-    showPage('admin');
-  } else {
-    document.getElementById('login-err').style.display='block';
-  }
-}
+    function saveSetup() {
+      ejsCfg = {
+        pubkey: document.getElementById('ejs-pubkey').value.trim(),
+        service: document.getElementById('ejs-service').value.trim(),
+        tplSig: document.getElementById('ejs-tpl-sig').value.trim(),
+        tplRpt: document.getElementById('ejs-tpl-rpt').value.trim(),
+        mgrEmail: document.getElementById('mgr-email').value.trim()
+      };
+      lsSet(KEYS.ejs, ejsCfg);
+      if (ejsCfg.pubkey) emailjs.init(ejsCfg.pubkey);
+      const s = document.getElementById('setup-status');
+      s.textContent = '✓ Saved!';
+      setTimeout(() => s.textContent = '', 2000);
+    }
 
-function logout(){
-  sessionAuthed=false;
-  showPage('tenant');
-}
+    function copyShareLink() {
+      navigator.clipboard.writeText(location.href).then(() => {
+        document.getElementById('link-status').textContent = '✓ Copied!';
+        setTimeout(() => document.getElementById('link-status').textContent = '', 2000);
+      });
+    }
 
-// Start on tenant page
-showPage('tenant');
+    // ── Form builder ──────────────────────────────────────────────────────────────
+    function activateForm() {
+      activeForm = {
+        topic: document.getElementById('admin-topic').value.trim() || 'General acknowledgment',
+        desc: document.getElementById('admin-desc').value.trim() || 'Please review and sign.',
+        building: document.getElementById('admin-building').value.trim()
+      };
+      lsSet(KEYS.form, activeForm);
+      const s = document.getElementById('form-status');
+      s.textContent = '✓ Active — tenants will now see this form';
+      setTimeout(() => s.textContent = '', 3000);
+    }
 
-// ── Password ──────────────────────────────────────────────────────────────────
-function savePassword(){
-  const p1=document.getElementById('new-pw').value;
-  const p2=document.getElementById('confirm-pw').value;
-  const s=document.getElementById('pw-status');
-  if(!p1){s.textContent='Enter a password.';return;}
-  if(p1!==p2){s.textContent='Passwords do not match.';return;}
-  adminPw=p1; lsSet(KEYS.pw,adminPw);
-  s.textContent='✓ Password saved';
-  document.getElementById('new-pw').value='';
-  document.getElementById('confirm-pw').value='';
-  setTimeout(()=>s.textContent='',3000);
-}
+    function saveTopicQuick() {
+      const t = document.getElementById('admin-topic').value.trim();
+      if (!t || topics.includes(t)) return;
+      topics.push(t); lsSet(KEYS.topics, topics); renderTopics();
+    }
+    function renderTopics() {
+      document.getElementById('topic-pills').innerHTML = topics.map((t, i) =>
+        `<span class="pill" onclick="loadTopic(${i})">${t}<span class="x" onclick="event.stopPropagation();removeTopic(${i})">×</span></span>`
+      ).join('');
+    }
+    function loadTopic(i) { document.getElementById('admin-topic').value = topics[i]; }
+    function removeTopic(i) { topics.splice(i, 1); lsSet(KEYS.topics, topics); renderTopics(); }
 
-// ── Admin tabs ────────────────────────────────────────────────────────────────
-function switchTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['setup','form','records','report'][i]===t));
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+t).classList.add('active');
-  if(t==='records') renderRecords();
-  if(t==='report') initReport();
-}
-
-// ── Setup ─────────────────────────────────────────────────────────────────────
-function loadAdminFields(){
-  document.getElementById('ejs-pubkey').value=ejsCfg.pubkey||'';
-  document.getElementById('ejs-service').value=ejsCfg.service||'';
-  document.getElementById('ejs-tpl-sig').value=ejsCfg.tplSig||'';
-  document.getElementById('ejs-tpl-rpt').value=ejsCfg.tplRpt||'';
-  document.getElementById('mgr-email').value=ejsCfg.mgrEmail||'';
-  document.getElementById('share-link').textContent=location.href;
-  if(activeForm.building) document.getElementById('admin-building').value=activeForm.building;
-  if(activeForm.topic) document.getElementById('admin-topic').value=activeForm.topic;
-  if(activeForm.desc) document.getElementById('admin-desc').value=activeForm.desc;
-}
-
-function saveSetup(){
-  ejsCfg={
-    pubkey:document.getElementById('ejs-pubkey').value.trim(),
-    service:document.getElementById('ejs-service').value.trim(),
-    tplSig:document.getElementById('ejs-tpl-sig').value.trim(),
-    tplRpt:document.getElementById('ejs-tpl-rpt').value.trim(),
-    mgrEmail:document.getElementById('mgr-email').value.trim()
-  };
-  lsSet(KEYS.ejs,ejsCfg);
-  if(ejsCfg.pubkey) emailjs.init(ejsCfg.pubkey);
-  const s=document.getElementById('setup-status');
-  s.textContent='✓ Saved!';
-  setTimeout(()=>s.textContent='',2000);
-}
-
-function copyShareLink(){
-  navigator.clipboard.writeText(location.href).then(()=>{
-    document.getElementById('link-status').textContent='✓ Copied!';
-    setTimeout(()=>document.getElementById('link-status').textContent='',2000);
-  });
-}
-
-// ── Form builder ──────────────────────────────────────────────────────────────
-function activateForm(){
-  activeForm={
-    topic:document.getElementById('admin-topic').value.trim()||'General acknowledgment',
-    desc:document.getElementById('admin-desc').value.trim()||'Please review and sign.',
-    building:document.getElementById('admin-building').value.trim()
-  };
-  lsSet(KEYS.form,activeForm);
-  const s=document.getElementById('form-status');
-  s.textContent='✓ Active — tenants will now see this form';
-  setTimeout(()=>s.textContent='',3000);
-}
-
-function saveTopicQuick(){
-  const t=document.getElementById('admin-topic').value.trim();
-  if(!t||topics.includes(t)) return;
-  topics.push(t); lsSet(KEYS.topics,topics); renderTopics();
-}
-function renderTopics(){
-  document.getElementById('topic-pills').innerHTML=topics.map((t,i)=>
-    `<span class="pill" onclick="loadTopic(${i})">${t}<span class="x" onclick="event.stopPropagation();removeTopic(${i})">×</span></span>`
-  ).join('');
-}
-function loadTopic(i){document.getElementById('admin-topic').value=topics[i];}
-function removeTopic(i){topics.splice(i,1);lsSet(KEYS.topics,topics);renderTopics();}
-
-// ── Records ───────────────────────────────────────────────────────────────────
-function renderRecords(){
-  const el=document.getElementById('records-list');
-  const cnt=document.getElementById('rec-count');
-  signatures=lsGet(KEYS.sigs)||[];
-  cnt.textContent=signatures.length?`${signatures.length} record${signatures.length>1?'s':''}`:'';
-  if(!signatures.length){el.innerHTML='<div class="empty">No signatures yet.</div>';return;}
-  el.innerHTML=[...signatures].reverse().map(s=>`
+    // ── Records ───────────────────────────────────────────────────────────────────
+    function renderRecords() {
+      const el = document.getElementById('records-list');
+      const cnt = document.getElementById('rec-count');
+      signatures = lsGet(KEYS.sigs) || [];
+      cnt.textContent = signatures.length ? `${signatures.length} record${signatures.length > 1 ? 's' : ''}` : '';
+      if (!signatures.length) { el.innerHTML = '<div class="empty">No signatures yet.</div>'; return; }
+      el.innerHTML = [...signatures].reverse().map(s => `
     <div class="rec-item">
       <div class="rec-top">
         <div>
-          <div class="rec-name">${s.name}${s.unit?' · '+s.unit:''}</div>
-          <div class="rec-meta">${s.email}${s.building?' · '+s.building:''}</div>
+          <div class="rec-name">${s.name}${s.unit ? ' · ' + s.unit : ''}</div>
+          <div class="rec-meta">${s.email}${s.building ? ' · ' + s.building : ''}</div>
           <div class="rec-topic">"${s.topic}"</div>
           <div class="rec-meta" style="margin-top:4px">${s.date}</div>
         </div>
@@ -403,169 +853,185 @@ function renderRecords(){
       </div>
       <img class="rec-sig" src="${s.img}" alt="signature of ${s.name}"/>
     </div>`).join('');
-}
-function clearAll(){
-  if(!signatures.length) return;
-  if(!confirm('Delete all records? Cannot be undone.')) return;
-  signatures=[];lsSet(KEYS.sigs,signatures);renderRecords();
-}
+    }
+    function clearAll() {
+      if (!signatures.length) return;
+      if (!confirm('Delete all records? Cannot be undone.')) return;
+      signatures = []; lsSet(KEYS.sigs, signatures); renderRecords();
+    }
 
-// ── Report ────────────────────────────────────────────────────────────────────
-function initReport(){
-  signatures=lsGet(KEYS.sigs)||[];
-  const sel=document.getElementById('report-filter');
-  const unique=[...new Set(signatures.map(s=>s.topic))];
-  sel.innerHTML='<option value="">All topics</option>'+unique.map(t=>`<option value="${t}">${t}</option>`).join('');
-  document.getElementById('report-preview').innerHTML='';
-  document.getElementById('btn-copy-rpt').style.display='none';
-  document.getElementById('btn-email-rpt').style.display='none';
-}
-function generateReport(){
-  const filter=document.getElementById('report-filter').value;
-  const list=filter?signatures.filter(s=>s.topic===filter):signatures;
-  if(!list.length){document.getElementById('report-preview').innerHTML='<p style="font-size:13px;color:var(--muted);margin-top:10px">No records found.</p>';return;}
-  const building=list[0]?.building||'N/A';
-  const now=new Date().toLocaleString();
-  const rows=list.map((s,i)=>`${i+1}. ${s.name}${s.unit?' (Unit '+s.unit+')':''}\n   Email: ${s.email}\n   Topic: ${s.topic}\n   Signed: ${s.date}`).join('\n\n');
-  const report=`TENANT SIGNATURE REPORT\n========================\nBuilding: ${building}\n${filter?'Topic: '+filter:'All topics'}\nTotal signatures: ${list.length}\nGenerated: ${now}\n\nTENANT LIST\n-----------\n${rows}\n\n------------------------\nAll signatures collected electronically with consent.`;
-  window._reportText=report;
-  document.getElementById('report-preview').innerHTML=`<div class="report-box">${report.replace(/\n/g,'<br>')}</div>`;
-  document.getElementById('btn-copy-rpt').style.display='';
-  document.getElementById('btn-email-rpt').style.display='';
-}
-function copyReport(){
-  if(!window._reportText) return;
-  navigator.clipboard.writeText(window._reportText).then(()=>{
-    document.getElementById('report-status').textContent='✓ Copied!';
-    setTimeout(()=>document.getElementById('report-status').textContent='',2000);
-  });
-}
-async function emailReport(){
-  if(!ejsCfg.pubkey||!ejsCfg.service||!ejsCfg.tplRpt){alert('Configure EmailJS in Setup first.');return;}
-  const s=document.getElementById('report-status');
-  s.textContent='Sending...';
-  try{
-    await emailjs.send(ejsCfg.service,ejsCfg.tplRpt,{
-      to_email:ejsCfg.mgrEmail,
-      topic:document.getElementById('report-filter').value||'All topics',
-      message:window._reportText
-    });
-    s.textContent='✓ Report emailed to '+ejsCfg.mgrEmail;
-  }catch(e){s.textContent='Error: '+(e.text||e.message);}
-}
-
-// ── Tenant form ───────────────────────────────────────────────────────────────
-function loadTenantForm(){
-  activeForm=lsGet(KEYS.form)||{topic:'',desc:'',building:''};
-  if(!activeForm.topic){
-    document.getElementById('t-topic').textContent='No active form';
-    document.getElementById('t-desc').textContent='Please ask your building manager to activate a form.';
-    document.getElementById('t-building').textContent='Tenant Signatures';
-    document.getElementById('t-tagline').textContent='';
-    return;
-  }
-  document.getElementById('t-building').textContent=activeForm.building||'Sign document';
-  document.getElementById('t-tagline').textContent='Please read and sign below.';
-  document.getElementById('t-topic').textContent=activeForm.topic;
-  document.getElementById('t-desc').textContent=activeForm.desc||'';
-}
-
-function resetTenantForm(){
-  document.getElementById('t-form-wrap').style.display='block';
-  document.getElementById('t-success').style.display='none';
-  document.getElementById('t-name').value='';
-  document.getElementById('t-unit').value='';
-  document.getElementById('t-email').value='';
-  document.getElementById('t-err').style.display='none';
-  clearSig();
-  loadTenantForm();
-}
-
-// ── Signature canvas ──────────────────────────────────────────────────────────
-let drawing=false,lx=0,ly=0;
-const canvas=document.getElementById('sig-canvas');
-const ctx=canvas.getContext('2d');
-ctx.strokeStyle='#111';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';
-
-function pos(e){
-  const r=canvas.getBoundingClientRect();
-  const sx=canvas.width/r.width,sy=canvas.height/r.height;
-  const s=e.touches?e.touches[0]:e;
-  return[(s.clientX-r.left)*sx,(s.clientY-r.top)*sy];
-}
-canvas.addEventListener('mousedown',e=>{drawing=true;[lx,ly]=pos(e);});
-canvas.addEventListener('mousemove',e=>{if(!drawing)return;const[x,y]=pos(e);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(x,y);ctx.stroke();[lx,ly]=[x,y];});
-canvas.addEventListener('mouseup',()=>drawing=false);
-canvas.addEventListener('mouseleave',()=>drawing=false);
-canvas.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;[lx,ly]=pos(e);},{passive:false});
-canvas.addEventListener('touchmove',e=>{e.preventDefault();if(!drawing)return;const[x,y]=pos(e);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(x,y);ctx.stroke();[lx,ly]=[x,y];},{passive:false});
-canvas.addEventListener('touchend',()=>drawing=false);
-
-function clearSig(){ctx.clearRect(0,0,canvas.width,canvas.height);}
-function sigEmpty(){return!ctx.getImageData(0,0,canvas.width,canvas.height).data.some(v=>v!==0);}
-
-function showErr(msg){
-  const el=document.getElementById('t-err');
-  el.textContent=msg; el.style.display=msg?'block':'none';
-}
-
-// ── Submit signature ──────────────────────────────────────────────────────────
-async function submitSig(){
-  activeForm=lsGet(KEYS.form)||{};
-  const name=document.getElementById('t-name').value.trim();
-  const unit=document.getElementById('t-unit').value.trim();
-  const email=document.getElementById('t-email').value.trim();
-  showErr('');
-  if(!name) return showErr('Please enter your full name.');
-  if(!email||!email.includes('@')) return showErr('Please enter a valid email address.');
-  if(sigEmpty()) return showErr('Please draw your signature before submitting.');
-
-  const btn=document.getElementById('t-sub-btn');
-  const status=document.getElementById('t-status');
-  btn.disabled=true;
-  btn.innerHTML='<span class="loading"></span> Saving...';
-
-  const record={
-    id:Date.now(),name,unit,email,
-    topic:activeForm.topic||'General acknowledgment',
-    building:activeForm.building||'',
-    img:canvas.toDataURL(),
-    date:new Date().toLocaleString()
-  };
-
-  const sigs=lsGet(KEYS.sigs)||[];
-  sigs.push(record);
-  lsSet(KEYS.sigs,sigs);
-  signatures=sigs;
-
-  ejsCfg=lsGet(KEYS.ejs)||ejsCfg;
-  if(ejsCfg.pubkey&&ejsCfg.service&&ejsCfg.tplSig&&ejsCfg.mgrEmail){
-    status.textContent='Sending notification...';
-    try{
-      await emailjs.send(ejsCfg.service, ejsCfg.tplSig,{
-        to_email: ejsCfg.mgrEmail,
-        building: record.building || 'N/A',
-        topic: record.topic,
-        tenant_name: record.name,
-        tenant_unit: record.unit || 'N/A',
-        tenant_email: record.email,
-        date: record.date,
-
-        // ✅ ADD THIS LINE (THE FIX)
-        signature_image: record.img
+    // ── Report ────────────────────────────────────────────────────────────────────
+    function initReport() {
+      signatures = lsGet(KEYS.sigs) || [];
+      const sel = document.getElementById('report-filter');
+      const unique = [...new Set(signatures.map(s => s.topic))];
+      sel.innerHTML = '<option value="">All topics</option>' + unique.map(t => `<option value="${t}">${t}</option>`).join('');
+      document.getElementById('report-preview').innerHTML = '';
+      document.getElementById('btn-copy-rpt').style.display = 'none';
+      document.getElementById('btn-email-rpt').style.display = 'none';
+    }
+    function generateReport() {
+      const filter = document.getElementById('report-filter').value;
+      const list = filter ? signatures.filter(s => s.topic === filter) : signatures;
+      if (!list.length) { document.getElementById('report-preview').innerHTML = '<p style="font-size:13px;color:var(--muted);margin-top:10px">No records found.</p>'; return; }
+      const building = list[0]?.building || 'N/A';
+      const now = new Date().toLocaleString();
+      const rows = list.map((s, i) => `${i + 1}. ${s.name}${s.unit ? ' (Unit ' + s.unit + ')' : ''}\n   Email: ${s.email}\n   Topic: ${s.topic}\n   Signed: ${s.date}`).join('\n\n');
+      const report = `TENANT SIGNATURE REPORT\n========================\nBuilding: ${building}\n${filter ? 'Topic: ' + filter : 'All topics'}\nTotal signatures: ${list.length}\nGenerated: ${now}\n\nTENANT LIST\n-----------\n${rows}\n\n------------------------\nAll signatures collected electronically with consent.`;
+      window._reportText = report;
+      document.getElementById('report-preview').innerHTML = `<div class="report-box">${report.replace(/\n/g, '<br>')}</div>`;
+      document.getElementById('btn-copy-rpt').style.display = '';
+      document.getElementById('btn-email-rpt').style.display = '';
+    }
+    function copyReport() {
+      if (!window._reportText) return;
+      navigator.clipboard.writeText(window._reportText).then(() => {
+        document.getElementById('report-status').textContent = '✓ Copied!';
+        setTimeout(() => document.getElementById('report-status').textContent = '', 2000);
       });
-    }catch(e){console.error('EmailJS',e);}
-  }
+    }
+    async function emailReport() {
+      if (!ejsCfg.pubkey || !ejsCfg.service || !ejsCfg.tplRpt) { alert('Configure EmailJS in Setup first.'); return; }
+      const s = document.getElementById('report-status');
+      s.textContent = 'Sending...';
+      try {
+        await emailjs.send(ejsCfg.service, ejsCfg.tplRpt, {
+          to_email: ejsCfg.mgrEmail,
+          topic: document.getElementById('report-filter').value || 'All topics',
+          message: window._reportText
+        });
+        s.textContent = '✓ Report emailed to ' + ejsCfg.mgrEmail;
+      } catch (e) { s.textContent = 'Error: ' + (e.text || e.message); }
+    }
 
-  btn.disabled=false;
-  btn.textContent='Submit signature';
-  status.textContent='';
+    // ── Tenant form ───────────────────────────────────────────────────────────────
+    function loadTenantForm() {
+      activeForm = lsGet(KEYS.form) || { topic: '', desc: '', building: '' };
+      if (!activeForm.topic) {
+        document.getElementById('t-topic').textContent = 'No active form';
+        document.getElementById('t-desc').textContent = 'Please ask your building manager to activate a form.';
+        document.getElementById('t-building').textContent = 'Tenant Signatures';
+        document.getElementById('t-tagline').textContent = '';
+        return;
+      }
+      document.getElementById('t-building').textContent = activeForm.building || 'Sign document';
+      document.getElementById('t-tagline').textContent = 'Please read and sign below.';
+      document.getElementById('t-topic').textContent = activeForm.topic;
+      document.getElementById('t-desc').textContent = activeForm.desc || '';
+    }
 
-  document.getElementById('t-success-msg').textContent=
-    `Thank you, ${record.name}. Your signature for "${record.topic}" has been recorded${ejsCfg.mgrEmail?' and the building manager has been notified':''}.`;
-  document.getElementById('t-form-wrap').style.display='none';
-  document.getElementById('t-success').style.display='block';
-}
-</script>
+    function resetTenantForm() {
+      document.getElementById('t-form-wrap').style.display = 'block';
+      document.getElementById('t-success').style.display = 'none';
+      document.getElementById('t-name').value = '';
+      document.getElementById('t-unit').value = '';
+      document.getElementById('t-email').value = '';
+      document.getElementById('t-err').style.display = 'none';
+      clearSig();
+      loadTenantForm();
+    }
+
+    // ── Signature canvas ──────────────────────────────────────────────────────────
+    let drawing = false, lx = 0, ly = 0;
+    const canvas = document.getElementById('sig-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      const sx = canvas.width / r.width, sy = canvas.height / r.height;
+      const s = e.touches ? e.touches[0] : e;
+      return [(s.clientX - r.left) * sx, (s.clientY - r.top) * sy];
+    }
+    canvas.addEventListener('mousedown', e => { drawing = true;[lx, ly] = pos(e); });
+    canvas.addEventListener('mousemove', e => { if (!drawing) return; const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke();[lx, ly] = [x, y]; });
+    canvas.addEventListener('mouseup', () => drawing = false);
+    canvas.addEventListener('mouseleave', () => drawing = false);
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true;[lx, ly] = pos(e); }, { passive: false });
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke();[lx, ly] = [x, y]; }, { passive: false });
+    canvas.addEventListener('touchend', () => drawing = false);
+
+    function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    function sigEmpty() { return !ctx.getImageData(0, 0, canvas.width, canvas.height).data.some(v => v !== 0); }
+
+    function showErr(msg) {
+      const el = document.getElementById('t-err');
+      el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+    }
+
+
+    // ── Submit signature ──────────────────────────────────────────────────────────
+    async function submitSig() {
+      activeForm = lsGet(KEYS.form) || {};
+      const name = document.getElementById('t-name').value.trim();
+      const unit = document.getElementById('t-unit').value.trim();
+      const email = document.getElementById('t-email').value.trim();
+      showErr('');
+
+      if (!name) return showErr('Please enter your full name.');
+      if (!email || !email.includes('@')) return showErr('Please enter a valid email address.');
+      if (sigEmpty()) return showErr('Please draw your signature before submitting.');
+
+      const btn = document.getElementById('t-sub-btn');
+      const status = document.getElementById('t-status');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Saving...';
+
+      // ✅ CREATE IMAGE *NOW*, AFTER USER DREW
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = canvas.width;
+      exportCanvas.height = canvas.height;
+
+      const exportCtx = exportCanvas.getContext('2d');
+      exportCtx.fillStyle = '#ffffff';
+      exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+      exportCtx.drawImage(canvas, 0, 0);
+
+      const signatureImage = exportCanvas.toDataURL('image/png');
+
+      const record = {
+        id: Date.now(),
+        name,
+        unit,
+        email,
+        topic: activeForm.topic || 'General acknowledgment',
+        building: activeForm.building || '',
+        img: signatureImage, // ✅ now contains real signature
+        date: new Date().toLocaleString()
+      };
+
+      const sigs = lsGet(KEYS.sigs) || [];
+      sigs.push(record);
+      lsSet(KEYS.sigs, sigs);
+      signatures = sigs;
+
+      ejsCfg = lsGet(KEYS.ejs) || ejsCfg;
+      if (ejsCfg.pubkey && ejsCfg.service && ejsCfg.tplSig && ejsCfg.mgrEmail) {
+        status.textContent = 'Sending notification...';
+        try {
+          await emailjs.send(ejsCfg.service, ejsCfg.tplSig, {
+            to_email: ejsCfg.mgrEmail,
+            building: record.building || 'N/A',
+            topic: record.topic,
+            tenant_name: record.name,
+            tenant_unit: record.unit || 'N/A',
+            tenant_email: record.email,
+            date: record.date,
+            signature_image: record.img
+          });
+        } catch (e) {
+          console.error('EmailJS', e);
+        }
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Submit signature';
+      status.textContent = '';
+
+      document.getElementById('t-form-wrap').style.display = 'none';
+      document.getElementById('t-success').style.display = 'block';
+    }
+  </script>
 </body>
+
 </html>
