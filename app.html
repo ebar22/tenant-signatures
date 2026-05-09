@@ -507,6 +507,32 @@
       color: var(--muted);
       line-height: 1.6
     }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .tabs,
+      .btn,
+      .admin-link {
+        display: none !important;
+      }
+
+      .page {
+        display: block !important;
+      }
+
+      .rec-item {
+        page-break-inside: avoid;
+        margin-bottom: 24px;
+      }
+
+      .rec-sig {
+        height: auto;
+        max-height: 120px;
+      }
+    }
   </style>
 </head>
 
@@ -535,20 +561,21 @@
     <div class="shell">
       <div id="t-form-wrap">
         <h1 id="t-building">Sign document</h1>
-        <p class="tagline" id="t-tagline">Please read and sign below.</p>
+        <p class="tagline" id="t-tagline">אנא קראו וחיתמו למטה</p>
         <div class="card">
           <div class="topic-box">
             <div class="topic-name" id="t-topic">Loading...</div>
             <div class="topic-desc" id="t-desc"></div>
           </div>
           <div class="row2">
-            <div class="fg"><label>Full name *</label><input id="t-name" placeholder="Your full name" /></div>
-            <div class="fg"><label>Unit / apartment</label><input id="t-unit" placeholder="e.g. Apt 4B" /></div>
+            <div class="fg"><label>שם מלא *</label><input id="t-name" placeholder="הקלד שם ושם משפחה" /></div>
+            <div class="fg"><label>מספר דירה</label><input id="t-unit" placeholder="לדוגמא דירה 55" /></div>
           </div>
-          <div class="fg"><label>Email address *</label><input type="email" id="t-email" placeholder="your@email.com" />
+          <div class="fg"><label>כתובת דואר אלקטרוני *</label><input type="email" id="t-email"
+              placeholder="your@email.com" />
           </div>
           <div class="fg">
-            <label>Signature * <span style="font-size:11px;color:var(--hint)">(draw with mouse or finger)</span></label>
+            <label>חתימה * <span style="font-size:11px;color:var(--hint)">(חתום באמצעות עכבר או האצבע)</span></label>
             <div class="sig-wrap">
               <canvas id="sig-canvas" width="640" height="130"></canvas>
               <div class="sig-hint">Draw your signature above</div>
@@ -587,7 +614,7 @@
         <button class="tab active" onclick="switchTab('setup')">Setup</button>
         <button class="tab" onclick="switchTab('form')">Form builder</button>
         <button class="tab" onclick="switchTab('records')">Records</button>
-        <button class="tab" onclick="switchTab('report')">Report</button>
+        <!-- <button class="tab" onclick="switchTab('report')">Report</button> -->
       </div>
 
       <!-- SETUP -->
@@ -662,14 +689,18 @@
       <!-- RECORDS -->
       <div class="view" id="view-records">
         <div class="btn-row" style="margin-bottom:1rem">
+          <button class="btn" onclick="printRecords()">🖨️ Print records</button>
+          <button class="btn" onclick="emailRecords()">📧 Email records</button>
           <button class="btn danger" onclick="clearAll()">Clear all records</button>
           <span class="status-txt" id="rec-count"></span>
         </div>
+
+        <!-- ✅ THIS WAS MISSING -->
         <div id="records-list"></div>
       </div>
 
       <!-- REPORT -->
-      <div class="view" id="view-report">
+      <!--       <div class="view" id="view-report">
         <div class="card">
           <div class="sec">Combined signature report</div>
           <div class="fg"><label>Filter by topic</label>
@@ -686,11 +717,82 @@
           </div>
           <div id="report-preview"></div>
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 
   <script>
+    async function emailRecords() {
+      if (!signatures || !signatures.length) {
+        alert('No records to email.');
+        return;
+      }
+
+      if (!ejsCfg.pubkey || !ejsCfg.service || !ejsCfg.tplSig || !ejsCfg.mgrEmail) {
+        alert('EmailJS is not configured.');
+        return;
+      }
+
+      // Build HTML exactly like Records
+      const recordsHtml = `
+    <h2>Tenant Signature Records</h2>
+    <p><strong>Total records:</strong> ${signatures.length}</p>
+    <hr>
+
+    ${signatures.map((s, i) => `
+      <div style="margin-bottom:24px">
+        <p><strong>${i + 1}. ${s.name}${s.unit ? ' (Unit ' + s.unit + ')' : ''}</strong></p>
+        <p>Email: ${s.email}</p>
+        <p>Topic: ${s.topic}</p>
+        <p>Date: ${s.date}</p>
+        <img src="${s.img}"
+             style="display:block;max-width:100%;border:1px solid #ccc;background:#fff;padding:6px;margin-top:8px">
+      </div>
+      <hr>
+    `).join('')}
+
+    <p style="font-size:12px;color:#666">
+      These records were emailed directly from the records screen.
+    </p>
+  `;
+
+      try {
+        await emailjs.send(ejsCfg.service, ejsCfg.tplSig, {
+          to_email: ejsCfg.mgrEmail,
+
+          // These fields satisfy the signature template
+          building: 'Tenant Signature Records',
+          topic: 'All records',
+          tenant_name: '',
+          tenant_unit: '',
+          tenant_email: '',
+          date: new Date().toLocaleString(),
+
+          // 🔑 reuse the proven HTML slot
+          signature_image: recordsHtml
+        });
+
+        alert('✅ Records emailed successfully.');
+      } catch (e) {
+        console.error(e);
+        alert('Failed to email records.');
+      }
+    }
+
+    function printRecords() {
+      if (!signatures || !signatures.length) {
+        alert('No records to print.');
+        return;
+      }
+
+      // Ensure records are rendered before printing
+      renderRecords();
+
+      // Small delay to allow DOM update
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    }
     // ── Storage ───────────────────────────────────────────────────────────────────
     const KEYS = { sigs: 'sigs_v1', topics: 'topics_v1', form: 'form_v1', ejs: 'ejs_v1', pw: 'admin_pw_v1' };
     function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)) } catch { return null } }
@@ -765,11 +867,28 @@
 
     // ── Admin tabs ────────────────────────────────────────────────────────────────
     function switchTab(t) {
-      document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', ['setup', 'form', 'records', 'report'][i] === t));
-      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      document.getElementById('view-' + t).classList.add('active');
-      if (t === 'records') renderRecords();
-      if (t === 'report') initReport();
+      const tabs = ['setup', 'form', 'records'];
+
+      // Update active tab
+      document.querySelectorAll('.tab').forEach((el, i) => {
+        el.classList.toggle('active', tabs[i] === t);
+      });
+
+      // Hide all views
+      document.querySelectorAll('.view').forEach(v =>
+        v.classList.remove('active')
+      );
+
+      // Show selected view
+      const target = document.getElementById('view-' + t);
+      if (target) {
+        target.classList.add('active');
+      }
+
+      // ✅ Delay rendering until DOM is ready
+      if (t === 'records') {
+        setTimeout(renderRecords, 0);
+      }
     }
 
     // ── Setup ─────────────────────────────────────────────────────────────────────
@@ -837,23 +956,38 @@
     function renderRecords() {
       const el = document.getElementById('records-list');
       const cnt = document.getElementById('rec-count');
+
+      if (!el) return;
+
       signatures = lsGet(KEYS.sigs) || [];
-      cnt.textContent = signatures.length ? `${signatures.length} record${signatures.length > 1 ? 's' : ''}` : '';
-      if (!signatures.length) { el.innerHTML = '<div class="empty">No signatures yet.</div>'; return; }
+
+      if (!signatures.length) {
+        el.innerHTML = '<div class="empty">No signatures yet.</div>';
+        cnt.textContent = '';
+        return;
+      }
+
+      cnt.textContent =
+        signatures.length + ' record' +
+        (signatures.length > 1 ? 's' : '');
+
       el.innerHTML = [...signatures].reverse().map(s => `
     <div class="rec-item">
       <div class="rec-top">
         <div>
           <div class="rec-name">${s.name}${s.unit ? ' · ' + s.unit : ''}</div>
-          <div class="rec-meta">${s.email}${s.building ? ' · ' + s.building : ''}</div>
+          <div class="rec-meta">${s.email}</div>
           <div class="rec-topic">"${s.topic}"</div>
           <div class="rec-meta" style="margin-top:4px">${s.date}</div>
         </div>
         <span class="badge">Signed</span>
       </div>
-      <img class="rec-sig" src="${s.img}" alt="signature of ${s.name}"/>
-    </div>`).join('');
+
+      <img class="rec-sig" src="${s.img}" alt="signature" />
+    </div>
+  `).join('');
     }
+
     function clearAll() {
       if (!signatures.length) return;
       if (!confirm('Delete all records? Cannot be undone.')) return;
@@ -861,48 +995,98 @@
     }
 
     // ── Report ────────────────────────────────────────────────────────────────────
-    function initReport() {
-      signatures = lsGet(KEYS.sigs) || [];
-      const sel = document.getElementById('report-filter');
-      const unique = [...new Set(signatures.map(s => s.topic))];
-      sel.innerHTML = '<option value="">All topics</option>' + unique.map(t => `<option value="${t}">${t}</option>`).join('');
-      document.getElementById('report-preview').innerHTML = '';
-      document.getElementById('btn-copy-rpt').style.display = 'none';
-      document.getElementById('btn-email-rpt').style.display = 'none';
-    }
-    function generateReport() {
-      const filter = document.getElementById('report-filter').value;
-      const list = filter ? signatures.filter(s => s.topic === filter) : signatures;
-      if (!list.length) { document.getElementById('report-preview').innerHTML = '<p style="font-size:13px;color:var(--muted);margin-top:10px">No records found.</p>'; return; }
-      const building = list[0]?.building || 'N/A';
-      const now = new Date().toLocaleString();
-      const rows = list.map((s, i) => `${i + 1}. ${s.name}${s.unit ? ' (Unit ' + s.unit + ')' : ''}\n   Email: ${s.email}\n   Topic: ${s.topic}\n   Signed: ${s.date}`).join('\n\n');
-      const report = `TENANT SIGNATURE REPORT\n========================\nBuilding: ${building}\n${filter ? 'Topic: ' + filter : 'All topics'}\nTotal signatures: ${list.length}\nGenerated: ${now}\n\nTENANT LIST\n-----------\n${rows}\n\n------------------------\nAll signatures collected electronically with consent.`;
-      window._reportText = report;
-      document.getElementById('report-preview').innerHTML = `<div class="report-box">${report.replace(/\n/g, '<br>')}</div>`;
-      document.getElementById('btn-copy-rpt').style.display = '';
-      document.getElementById('btn-email-rpt').style.display = '';
-    }
-    function copyReport() {
-      if (!window._reportText) return;
-      navigator.clipboard.writeText(window._reportText).then(() => {
-        document.getElementById('report-status').textContent = '✓ Copied!';
-        setTimeout(() => document.getElementById('report-status').textContent = '', 2000);
-      });
-    }
-    async function emailReport() {
-      if (!ejsCfg.pubkey || !ejsCfg.service || !ejsCfg.tplRpt) { alert('Configure EmailJS in Setup first.'); return; }
-      const s = document.getElementById('report-status');
-      s.textContent = 'Sending...';
-      try {
-        await emailjs.send(ejsCfg.service, ejsCfg.tplRpt, {
-          to_email: ejsCfg.mgrEmail,
-          topic: document.getElementById('report-filter').value || 'All topics',
-          message: window._reportText
-        });
-        s.textContent = '✓ Report emailed to ' + ejsCfg.mgrEmail;
-      } catch (e) { s.textContent = 'Error: ' + (e.text || e.message); }
-    }
+    /*     function initReport() {
+          signatures = lsGet(KEYS.sigs) || [];
+          const sel = document.getElementById('report-filter');
+          const unique = [...new Set(signatures.map(s => s.topic))];
+          sel.innerHTML = '<option value="">All topics</option>' + unique.map(t => `<option value="${t}">${t}</option>`).join('');
+          document.getElementById('report-preview').innerHTML = '';
+          document.getElementById('btn-copy-rpt').style.display = 'none';
+          document.getElementById('btn-email-rpt').style.display = 'none';
+        } */
+    /*     function generateReport() {
+          const filter = document.getElementById('report-filter').value;
+          const list = filter ? signatures.filter(s => s.topic === filter) : signatures;
+          if (!list.length) { document.getElementById('report-preview').innerHTML = '<p style="font-size:13px;color:var(--muted);margin-top:10px">No records found.</p>'; return; }
+          const building = list[0]?.building || 'N/A';
+          const now = new Date().toLocaleString();
+          const rows = list.map((s, i) => `${i + 1}. ${s.name}${s.unit ? ' (Unit ' + s.unit + ')' : ''}\n   Email: ${s.email}\n   Topic: ${s.topic}\n   Signed: ${s.date}`).join('\n\n');
+          const report = `TENANT SIGNATURE REPORT\n========================\nBuilding: ${building}\n${filter ? 'Topic: ' + filter : 'All topics'}\nTotal signatures: ${list.length}\nGenerated: ${now}\n\nTENANT LIST\n-----------\n${rows}\n\n------------------------\nAll signatures collected electronically with consent.`;
+          window._reportText = report;
+          document.getElementById('report-preview').innerHTML = `<div class="report-box">${report.replace(/\n/g, '<br>')}</div>`;
+          document.getElementById('btn-copy-rpt').style.display = '';
+          document.getElementById('btn-email-rpt').style.display = '';
+        } */
+    /*     function copyReport() {
+          if (!window._reportText) return;
+          navigator.clipboard.writeText(window._reportText).then(() => {
+            document.getElementById('report-status').textContent = '✓ Copied!';
+            setTimeout(() => document.getElementById('report-status').textContent = '', 2000);
+          });
+        } */
+
+    /*     async function emailReport() {
+          if (!ejsCfg.pubkey || !ejsCfg.service || !ejsCfg.tplRpt || !ejsCfg.mgrEmail) {
+            alert('Configure EmailJS in Setup first.');
+            return;
+          } */
+
+    /*     const filter = document.getElementById('report-filter').value;
+        const list = filter
+          ? signatures.filter(s => s.topic === filter)
+          : signatures;
+    
+        if (!list.length) {
+          alert('No signatures to report.');
+          return;
+        } */
+
+    // ✅ REAL HTML — SAME IDEA AS RECORDS TAB
+    /*     const reportHtml = `
+        <h2>Tenant Signature Report</h2>
+        <p><strong>Total signatures:</strong> ${list.length}</p>
+        <hr>
+    
+        ${list.map((s, i) => `
+          <div style="margin-bottom:24px">
+            <p><strong>${i + 1}. ${s.name}${s.unit ? ' (Unit ' + s.unit + ')' : ''}</strong></p>
+            <p>Email: ${s.email}</p>
+            <p>Topic: ${s.topic}</p>
+            <p>Signed: ${s.date}</p>
+            <img src="${s.img}"
+                 style="display:block;max-width:100%;border:1px solid #ccc;background:#fff;padding:6px;margin-top:8px">
+          </div>
+          <hr>
+        `).join('')}
+    
+        <p style="font-size:12px;color:#666">
+          All signatures collected electronically with tenant consent.
+        </p>
+      `;
+    
+        const status = document.getElementById('report-status');
+        status.textContent = 'Sending report...';
+    
+        try {
+          await emailjs.send(ejsCfg.service, ejsCfg.tplSig, {
+            to_email: ejsCfg.mgrEmail,
+    
+            building: 'Combined Tenant Signature Report',
+            topic: 'All signatures',
+            tenant_name: '',
+            tenant_unit: '',
+            tenant_email: '',
+            date: new Date().toLocaleString(),
+    
+            // ✅ THIS IS THE KEY
+            signature_image: reportHtml
+          });
+          status.textContent = '✓ Report emailed successfully';
+        } catch (e) {
+          status.textContent = 'Error: ' + (e.text || e.message);
+        }
+        } */
+
 
     // ── Tenant form ───────────────────────────────────────────────────────────────
     function loadTenantForm() {
@@ -915,7 +1099,7 @@
         return;
       }
       document.getElementById('t-building').textContent = activeForm.building || 'Sign document';
-      document.getElementById('t-tagline').textContent = 'Please read and sign below.';
+      document.getElementById('t-tagline').textContent = 'אנא קיראו וחיתמו למטה.';
       document.getElementById('t-topic').textContent = activeForm.topic;
       document.getElementById('t-desc').textContent = activeForm.desc || '';
     }
